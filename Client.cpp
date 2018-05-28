@@ -9,65 +9,20 @@
 MClient::MClient(MQConfig&& config) : gen(rd()), clientConfiguration(std::move(config)), socket(clientConfiguration.ctx, ZMQ_DEALER)
 {
 	configureSocket();
-	for (auto i:{1, 2, 3}) {
-		executors.emplace_back(std::thread([this]() {
-			while (!shouldStop) {
-				if (!responses.empty()) {
-					std::lock_guard<std::mutex> guard(queueMutex);
-					if (!responses.empty()) {
-						auto& task = responses.back();
-						task.func();
-						responses.pop_back();
-					}
-				}
-				else {
-					std::this_thread::yield();
-				}
-			}
-		}));
-	}
-	for (auto i:{1, 2, 3}) {
-		executors.emplace_back(std::thread([this]() {
-			while (!shouldStop) {
-				if (!responses.empty()) {
-					std::lock_guard<std::mutex> guard(queueMutex);
-					if (!responses.empty()) {
-						auto& task = responses.front();
-						task.func();
-						responses.pop_front();
-					}
-				}
-				else {
-					std::this_thread::yield();
-				}
-			}
-		}));
-	}
 }
 
 MClient::~MClient()
 {
 	shouldStop = true;
-	for (auto& thread:executors) {
-		thread.join();
-	}
 }
 
 Message MClient::sendRequest(const void* data, uint64_t size)
 {
 	try {
-		auto msgId = "Msg:" + std::to_string(++counter);
-		ClientTask task;
-		std::lock_guard<std::mutex> guard(queueMutex);
-
-		responses.push_front(std::move(task));
-
-		auto& prom = responses.front().promise;
-		responses.front().func = [msgId, &prom, data, size, this]() mutable {
+		return std::async([msgId {"Msg:" + std::to_string(++counter)}, data, size, this]() mutable {
 			zmq::message_t msg(const_cast<void*>(data), size, [](void*, void*) {}, nullptr);
-			prom.set_value(SendMessage(msgId, msg));
-		};
-		return prom.get_future();
+			return SendMessage(msgId, msg);
+		});
 	}
 	catch (const std::exception& ex) {
 		throw;
@@ -77,19 +32,11 @@ Message MClient::sendRequest(const void* data, uint64_t size)
 Message MClient::sendClonedRequest(const void* data, uint64_t size)
 {
 	try {
-		auto msgId = "Msg:" + std::to_string(++counter);
-		ClientTask task;
-		std::lock_guard<std::mutex> guard(queueMutex);
-
-		responses.push_front(std::move(task));
-
-		auto& prom = responses.front().promise;
-		responses.front().func = [msgId, &prom, clone {
+		return std::async([msgId {"Msg:" + std::to_string(++counter)}, clone {
 				std::vector<uint8_t>(static_cast<const uint8_t*>(data), static_cast<const uint8_t*>(data) + size)}, this]() mutable {
 			zmq::message_t msg(static_cast<void*>(clone.data()), clone.size(), [](void*, void*) {}, nullptr);
-			prom.set_value(SendMessage(msgId, msg));
-		};
-		return prom.get_future();
+			return SendMessage(msgId, msg);
+		});
 	}
 	catch (const std::exception& ex) {
 		throw;
