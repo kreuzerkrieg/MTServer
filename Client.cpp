@@ -36,7 +36,6 @@ Message MClient::sendRequest(const void* data, uint64_t size)
 		std::lock_guard<std::mutex> guard(queueMutex);
 		++counter;
 		auto msgId = "Msg:" + std::to_string(counter);
-		std::cout << "Message " << msgId << " added" << std::endl;
 		auto res = promises.emplace(msgId, std::promise<std::vector<uint8_t>>());
 		if (!res.second) {
 			throw std::runtime_error("Duplicate message ID");
@@ -50,7 +49,6 @@ Message MClient::sendRequest(const void* data, uint64_t size)
 			}
 			found->second.set_value(SendMessage(id, msg));
 			promises.erase(found);
-			std::cout << "Message received. Id: " << id << std::endl;
 		});
 		return res.first->second.get_future();
 	}
@@ -78,7 +76,6 @@ Message MClient::sendClonedRequest(const void* data, uint64_t size)
 			}
 			found->second.set_value(SendMessage(id, msg));
 			promises.erase(id);
-			std::cout << "Message received. Id: " << id << std::endl;
 		});
 		return res.first->second.get_future();
 	}
@@ -90,7 +87,6 @@ Message MClient::sendClonedRequest(const void* data, uint64_t size)
 std::vector<uint8_t> MClient::SendMessage(const std::string& msgId, zmq::message_t& msg)
 {
 
-	std::cout << "Sending message. Id: " << msgId << std::endl;
 	zmq::message_t identity(msgId.data(), msgId.size());
 	socket.send(identity, ZMQ_SNDMORE);
 	socket.send(msg);
