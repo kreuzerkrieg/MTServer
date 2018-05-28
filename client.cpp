@@ -7,8 +7,9 @@
 
 int main(int argc, char** argv)
 {
+	zmq::context_t ctx;
 	{
-		MQConfig clientConfig;
+		MQConfig clientConfig(ctx);
 		clientConfig.uri = "tcp://127.0.0.1:55556";
 		MClient client(std::move(clientConfig));
 
@@ -40,7 +41,7 @@ int main(int argc, char** argv)
 	}
 
 	{
-		MQConfig clientConfig;
+		MQConfig clientConfig(ctx);
 		clientConfig.uri = "tcp://127.0.0.1:55556";
 		MClient client(std::move(clientConfig));
 
@@ -143,13 +144,13 @@ int main(int argc, char** argv)
 		auto numberOfClients = 32ul;
 		std::vector<std::thread> threads;
 		std::atomic<uint64_t> bytes {0};
+
+		MQConfig clientConfig(ctx);
+		clientConfig.uri = "tcp://127.0.0.1:55556";
+		MClient client(std::move(clientConfig));
+
 		for (auto i = 0ul; i < numberOfClients; ++i) {
-			threads.emplace_back(std::thread([&bytes, &shouldStart]() {
-
-				MQConfig clientConfig;
-				clientConfig.uri = "tcp://127.0.0.1:55556";
-				MClient client(std::move(clientConfig));
-
+			threads.emplace_back(std::thread([&client, &bytes, &shouldStart]() {
 				boost::uuids::random_generator gen;
 				boost::uuids::uuid id = gen();
 				auto clientId = boost::uuids::to_string(id);

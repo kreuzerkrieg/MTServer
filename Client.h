@@ -45,23 +45,23 @@ public:
 private:
 	void configureSocket();
 
+	std::vector<uint8_t> SendMessage(const std::string& msgId, zmq::message_t& msg);
+
 	struct ClientTask
 	{
 		std::function<void()> func;
+		std::promise<std::vector<uint8_t>> promise;
 	};
+
 	std::random_device rd;
 	std::mt19937 gen;
 	std::uniform_int_distribution<uint64_t> distribution;
 	std::string identity;
 	MQConfig clientConfiguration;
 	zmq::socket_t socket;
-	std::deque<std::function<void()>> responses;
-	std::unordered_map<std::string, std::promise<std::vector<uint8_t>>> promises;
+	std::deque<ClientTask> responses;
 	std::mutex queueMutex;
-	std::thread executor;
-	std::atomic<uint64_t> counter{0};
+	std::vector<std::thread> executors;
+	uint64_t counter = 0;
 	bool shouldStop = false;
-
-	std::vector<uint8_t> SendMessage(const std::string& msgId, zmq::message_t& msg);
-
 };

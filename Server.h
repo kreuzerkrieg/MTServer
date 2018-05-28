@@ -51,12 +51,7 @@ private:
 							if (!more) {
 								break;
 							}
-							else {
-								std::cout << "Multipart message received:" << std::endl;
-							}
 						}
-						//						workerSocket.send(socket_identity, ZMQ_SNDMORE);
-						//						workerSocket.send(message_identity, ZMQ_SNDMORE);
 						for (auto i = 0ul; i < messages.size(); ++i) {
 							if (i < messages.size() - 1) {
 								workerSocket.send(messages[i], ZMQ_SNDMORE);
@@ -64,7 +59,6 @@ private:
 							else {
 								workerSocket.send(requestProcessor(messages[i]));
 							}
-							std::cout << std::string((char*) messages[i].data(), messages[i].size()) << std::endl;
 						}
 					}
 					catch (const std::exception& ex) {
