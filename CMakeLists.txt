@@ -4,7 +4,7 @@ project(MTServer)
 set(CMAKE_CXX_STANDARD 14)
 
 add_executable(Server server.cpp ZConfig.h Server.h)
-add_executable(Client client.cpp Client.cpp Client.h ZConfig.h)
+add_executable(Client client.cpp Client.cpp Client.h ZConfig.h ObjectPool.h)
 
 find_library(PTHREAD pthread)
 find_library(ZMQ zmq)

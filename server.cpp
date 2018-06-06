@@ -6,10 +6,10 @@
 int main(int argc, char** argv)
 {
 	try {
-		auto lambda = [](auto&& msg) {
-			zmq::message_t reply(1024);
-			memcpy((void*) reply.data(), "World", 5);
-			return reply;
+		auto lambda = [counter = 0](auto&& msg) mutable {
+//			++counter;
+//			std::this_thread::sleep_for(std::chrono::microseconds(100 * (counter % 4)));
+			return std::move(msg);
 		};
 		using functorType = decltype(lambda);
 		zmq::context_t ctx;
